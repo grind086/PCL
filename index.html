@@ -1,0 +1,114 @@
+<html>
+	<head>
+		<title>PCL Test</title>
+
+		<style type="text/css">
+			canvas {
+				width: 500px;
+				height: 500px;
+				border: 1px solid black;
+				image-rendering: pixelated;
+			}
+		</style>
+
+		<script type="text/javascript" src="src/PCL.js"></script>
+
+        <script type="text/javascript" src="src/math/Math.js"></script>
+
+		<script type="text/javascript" src="src/core/BaseNode.js"></script>
+		<script type="text/javascript" src="src/core/CombinerNode.js"></script>
+		<script type="text/javascript" src="src/core/GeneratorNode.js"></script>
+		<script type="text/javascript" src="src/core/ModifierNode.js"></script>
+		<script type="text/javascript" src="src/core/SelectorNode.js"></script>
+
+		<script type="text/javascript" src="src/extras/combiners/AddNode.js"></script>
+		<script type="text/javascript" src="src/extras/combiners/SubtractNode.js"></script>
+		<script type="text/javascript" src="src/extras/combiners/MultiplyNode.js"></script>
+		<script type="text/javascript" src="src/extras/combiners/DivideNode.js"></script>
+		<script type="text/javascript" src="src/extras/combiners/MaxNode.js"></script>
+		<script type="text/javascript" src="src/extras/combiners/MinNode.js"></script>
+		<script type="text/javascript" src="src/extras/combiners/PowerNode.js"></script>
+		
+		<script type="text/javascript" src="src/extras/generators/ArgumentNode.js"></script>
+
+		<script type="text/javascript" src="src/extras/modifiers/AbsNode.js"></script>
+		<script type="text/javascript" src="src/extras/modifiers/ClampNode.js"></script>
+		<script type="text/javascript" src="src/extras/modifiers/CurveNode.js"></script>
+		<script type="text/javascript" src="src/extras/modifiers/InvertNode.js"></script>
+		<script type="text/javascript" src="src/extras/modifiers/ScaleBiasNode.js"></script>
+		<script type="text/javascript" src="src/extras/modifiers/TerraceNode.js"></script>
+	</head>
+
+	<body>
+
+	<canvas id="testCanvas" width="500px" height="500px"></canvas>
+
+	<script type="text/javascript">
+
+		// Will output the same as our input
+		var argNode = new PCL.ArgumentNode();
+
+		// Make a fun curve (control points can be added in any order -
+        // they are auto-sorted)
+		var terraceNode = new PCL.TerraceNode();
+            terraceNode.setInput( 0, argNode );
+            terraceNode.addControlPoint( 0.00 );
+            terraceNode.addControlPoint( 0.10 );
+            terraceNode.addControlPoint( 0.40 );
+            terraceNode.addControlPoint( 0.60 );
+            terraceNode.addControlPoint( 0.75 );
+			terraceNode.addControlPoint( 1.00 );
+
+		// Invert and scale for canvas drawing
+		var invertNode = new PCL.InvertNode();
+			invertNode.setInput( 0, terraceNode );
+
+		var scaleBiasNode = new PCL.ScaleBiasNode();
+			scaleBiasNode.setInput( 0, invertNode );
+			scaleBiasNode.scale = 500;
+			scaleBiasNode.bias  = 500;
+
+		// Plot our function over [-1, 1]
+		var ctx = document.getElementById('testCanvas').getContext('2d');
+
+		ctx.beginPath();
+		ctx.moveTo(0, 500);
+
+		for ( var i = 0, v; i < 500; i++ ) {
+			v = scaleBiasNode.getValue( i / 500 );
+			ctx.lineTo( i, v );
+		}
+
+		ctx.stroke();
+
+        // Mark the control points
+
+        for (var i = 0, p, x, y, labX, labY; i < terraceNode.controlPoints.length; i++) {
+            p = terraceNode.controlPoints[i];
+
+            x = 500 * p;
+            y = 500 - x;
+
+            ctx.beginPath();
+            ctx.fillStyle="#FF0000";
+            ctx.arc( x, y, 5, 0, Math.PI*2 );
+            ctx.fill();
+
+            labX = Math.round(p * 100) / 100;
+            labY = Math.round(terraceNode.getValue( p ) * 100) / 100;
+
+            ctx.fillStyle="#000000";
+            ctx.fillText( '(' + labX + ',' + labY + ')', x + 10, y - 10 );
+        }
+
+        ctx.fillStyle="#000000";
+        ctx.fillText( '(' + labX + ',' + labY + ')', x - 30, y + 10 );
+
+        // Draw the border
+
+        ctx.strokeRect( 0, 0, 500, 500 );
+
+	</script>
+		
+	</body>
+</html>
