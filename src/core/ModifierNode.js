@@ -32,3 +32,10 @@ PCL.ModifierNode = function() {
 
 PCL.ModifierNode.prototype = Object.create( PCL.BaseNode.prototype );
 PCL.ModifierNode.constructor = PCL.ModifierNode;
+
+PCL.ModifierNode.prototype.getInputValue = function( args ) {
+
+    var node = this.inputNodes[0];
+    return node.getValue.apply( node, args );
+
+};

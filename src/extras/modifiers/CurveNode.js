@@ -106,7 +106,7 @@ PCL.CurveNode.prototype.makeControlPoints = function( pointArray ) {
  */
 PCL.CurveNode.prototype.getValue = function() {
 
-    var inputValue = this.getInputValues( arguments )[0];
+    var inputValue = this.getInputValue( arguments );
     var maxIndex = this.controlPoints.length - 1;
     var index;
 

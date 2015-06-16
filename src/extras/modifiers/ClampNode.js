@@ -51,7 +51,6 @@ PCL.ClampNode.constructor = PCL.ClampNode;
  */
 PCL.ClampNode.prototype.getValue = function() {
 
-    var inputValue = this.getInputValues( arguments )[0];
-   return PCL.Math.clamp( inputValue, this.min, this.max );
+   return PCL.Math.clamp( this.getInputValue( arguments ), this.min, this.max );
 
 };

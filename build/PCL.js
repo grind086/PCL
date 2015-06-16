@@ -1448,7 +1448,7 @@ PCL.TerraceNode.prototype.getValue = function() {
 // ----------
 
 /**
- * Outputs a weighted combination of `input[0]` and `input[1]` depending on the value
+ * (__NYI__) Outputs a weighted combination of `input[0]` and `input[1]` depending on the value
  * of `input[2]`. `input[2]` is assumed to have a range [-1, 1].
  *
  * @class PCL.BlendNode
@@ -1474,7 +1474,7 @@ PCL.BlendNode.prototype = Object.create( PCL.SelectorNode.prototype );
 PCL.BlendNode.constructor = PCL.BlendNode;
 
 /**
- * Outputs `input[0]` if `input[2] < BlendNode.threshold` else `input[1]`.
+ * (__NYI__)
  *
  * @method getValue
  * @param [...arguments] {Any} Arguments to be passed up the node chain.
@@ -1484,10 +1484,7 @@ PCL.BlendNode.constructor = PCL.BlendNode;
 PCL.BlendNode.prototype.getValue = function() {
 
     var inputValues = this.getInputValues( arguments );
-
-    return (inputValues[2] < this.threshold)
-        ? inputValues[0]
-        : inputValues[1];
+    return 0;
 
 };
 

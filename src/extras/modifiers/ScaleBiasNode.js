@@ -51,7 +51,6 @@ PCL.ScaleBiasNode.constructor = PCL.ScaleBiasNode;
  */
 PCL.ScaleBiasNode.prototype.getValue = function() {
 
-	var inputValues = this.getInputValues( arguments );
-	return inputValues[0] * this.scale + this.bias;
+	return this.getInputValue( arguments ) * this.scale + this.bias;
 
 };

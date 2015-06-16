@@ -33,7 +33,6 @@ PCL.AbsNode.constructor = PCL.AbsNode;
  */
 PCL.AbsNode.prototype.getValue = function() {
 
-    var inputValues = this.getInputValues( arguments );
-    return Math.abs( inputValues[0] );
+    return Math.abs( this.getInputValue( arguments ) );
 
 };

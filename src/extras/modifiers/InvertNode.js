@@ -33,7 +33,6 @@ PCL.InvertNode.constructor = PCL.InvertNode;
  */
 PCL.InvertNode.prototype.getValue = function() {
 
-	var inputValues = this.getInputValues( arguments );
-	return -1 * inputValues[0];
+	return -1 * this.getInputValue( arguments );
 
 };

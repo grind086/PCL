@@ -114,7 +114,7 @@ PCL.TerraceNode.prototype.makeControlPoints = function( pointCount ) {
  */
 PCL.TerraceNode.prototype.getValue = function() {
 
-	var inputValue = this.getInputValues( arguments )[ 0 ];
+	var inputValue = this.getInputValue( arguments );
 	var index;
 
 	for ( index = 0; index < this.controlPoints.length; index++ ) {
