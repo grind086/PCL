@@ -63,7 +63,17 @@ var PCL = {
      * @readOnly
      * @static
      */
-    VERSION: '1' 
+    VERSION: '1',
+
+    /**
+     * Whether or not THREE.js is available
+     *
+     * @property THREE_AVAILABLE
+     * @type boolean
+     * @readOnly
+     * @static
+     */
+    THREE_AVAILABLE: (typeof THREE !== 'undefined')
 
 };
 
@@ -93,3 +103,7 @@ PCL.warn = function() { console.warn.apply( console, arguments ); };
  */
 
 PCL.error = function() { console.error.apply( console, arguments ); };
+
+PCL.RBGFormat = 0;
+PCL.RGBAFormat = 1;
+PCL.GrayscaleFormat = 2;

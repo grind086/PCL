@@ -6,6 +6,7 @@ var fileList = [
     './src/PCL.js',
 
     './src/math/Math.js',
+    './src/math/easing.js',
 
     './src/core/BaseNode.js',
     './src/core/CombinerNode.js',
@@ -22,11 +23,14 @@ var fileList = [
     './src/extras/combiners/SubtractNode.js',
 
     './src/extras/generators/ArgumentNode.js',
+    './src/extras/generators/CheckerNode.js',
     './src/extras/generators/ConstantNode.js',
+    './src/extras/generators/FunctionNode.js',
 
     './src/extras/modifiers/AbsNode.js',
     './src/extras/modifiers/ClampNode.js',
     './src/extras/modifiers/CurveNode.js',
+    './src/extras/modifiers/FBMNode.js',
     './src/extras/modifiers/InvertNode.js',
     './src/extras/modifiers/ScaleBiasNode.js',
     './src/extras/modifiers/TerraceNode.js',
@@ -74,7 +78,7 @@ var mini = UglifyJS.minify(rawCode, {
 
 // Output minified code
 
-fs.writeFile( './build/PCL.min.js', mini.code, function( err ) {
+fs.writeFile( './build/PCL.min.js', mini.code + '\n', function( err ) {
 
     if (err) throw err;
     console.log( 'Minified file output to ./build/PCL.min.js' );

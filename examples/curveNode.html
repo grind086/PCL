@@ -1,49 +1,49 @@
 <html>
-	<head>
-		<title>CurveNode Example</title>
-		<script type="text/javascript" src="../build/PCL.js"></script>
-	</head>
+    <head>
+        <title>CurveNode Example</title>
+        <script type="text/javascript" src="../build/PCL.js"></script>
+    </head>
 
-	<body>
+    <body>
 
-	<canvas id="testCanvas" width="500px" height="500px"></canvas>
+    <canvas id="testCanvas" width="500px" height="500px"></canvas>
 
-	<script type="text/javascript">
+    <script type="text/javascript">
 
-		// Will output the same as our input
-		var argNode = new PCL.ArgumentNode();
+        // Will output the same as our input
+        var argNode = new PCL.ArgumentNode();
 
-		// Make a fun curve
-		var curveNode = new PCL.CurveNode();
-			curveNode.setInput( 0, argNode );
-			curveNode.makeControlPoints( [
-				0.00, 0.20, 0.10, 0.30, 0.20, 0.40,
-				0.30, 0.50, 0.40, 0.60, 0.50, 0.70,
-				0.60, 0.80, 0.70, 0.90, 0.80, 1.00
-			] );
+        // Make a fun curve
+        var curveNode = new PCL.CurveNode();
+            curveNode.setInput( 0, argNode );
+            curveNode.makeControlPoints( [
+                0.00, 0.20, 0.10, 0.30, 0.20, 0.40,
+                0.30, 0.50, 0.40, 0.60, 0.50, 0.70,
+                0.60, 0.80, 0.70, 0.90, 0.80, 1.00
+            ] );
 
-		// Invert and scale for canvas drawing
-		var invertNode = new PCL.InvertNode();
-			invertNode.setInput( 0, curveNode );
+        // Invert and scale for canvas drawing
+        var invertNode = new PCL.InvertNode();
+            invertNode.setInput( 0, curveNode );
 
-		var scaleBiasNode = new PCL.ScaleBiasNode();
-			scaleBiasNode.setInput( 0, invertNode );
-			scaleBiasNode.scale = 500;
-			scaleBiasNode.bias  = 500;
+        var scaleBiasNode = new PCL.ScaleBiasNode();
+            scaleBiasNode.setInput( 0, invertNode );
+            scaleBiasNode.scale = 500;
+            scaleBiasNode.bias  = 500;
 
-		// Plot our function over [-1, 1] -> [0, 1]
+        // Plot our function over [-1, 1] -> [0, 1]
         
-		var ctx = document.getElementById('testCanvas').getContext('2d');
+        var ctx = document.getElementById('testCanvas').getContext('2d');
 
-		ctx.beginPath();
-		ctx.moveTo(0, 500);
+        ctx.beginPath();
+        ctx.moveTo(0, 500);
 
-		for ( var i = -500, v; i <= 500; i++ ) {
-			v = scaleBiasNode.getValue( i / 500 );
-			ctx.lineTo( ( i + 500 ) / 2, v );
-		}
+        for ( var i = -500, v; i <= 500; i++ ) {
+            v = scaleBiasNode.getValue( i / 500 );
+            ctx.lineTo( ( i + 500 ) / 2, v );
+        }
 
-		ctx.stroke();
+        ctx.stroke();
 
         // Mark and label the control points
 
@@ -76,7 +76,7 @@
 
         ctx.strokeRect( 0, 0, 500, 500 );
 
-	</script>
-		
-	</body>
+    </script>
+        
+    </body>
 </html>

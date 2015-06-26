@@ -1,5 +1,9 @@
 PCL.Math = {};
 
+PCL.Math.clamp = function( x, min, max ) {
+    return Math.min( max, Math.max( min, x ) );
+};
+
 PCL.Math.uuid = function() {
 
     // From http://www.broofa.com/Tools/Math.uuid.js
@@ -37,28 +41,20 @@ PCL.Math.uuid = function() {
 
 }();
 
-PCL.Math.lerp = function( a, b, alpha ) {
-    return a * (1 - alpha) + b * alpha;
-};
+PCL.Math.hashCode = function( string ) {
 
-PCL.Math.cerp = function( a, b, c, d, alpha ) {
-    var p = (d - c) - (a - b),
-        q = (a - b) - p,
-        r = c - a,
-        s = b;
+    // Implementation of Java's String.hashCode()
+    // From http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
 
-    // a^3 * p + a^2 * q + a * r + s
-    return s + alpha * ( r + alpha * ( q + alpha * p ) );
-};
-
-PCL.Math.clamp = function( x, min, max ) {
-    return Math.min( max, Math.max( min, x ) );
-};
-
-PCL.Math.getEasingFunction = function( type ) {
-
-    switch (type) {
-        
+    if ( typeof string !== "string" ) {
+        string = string.toString();
     }
 
+    var hash = 0;
+    if (string.length == 0) return hash;
+    for (var i = 0; i < string.length; i++) {
+        hash = ((hash<<5)-hash)+string.charCodeAt(i);
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
 };
