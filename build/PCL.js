@@ -60,14 +60,14 @@
 var PCL = { 
 
     /**
-     * The current PCL version
+     * The current PCL revision
      *
-     * @property VERSION
+     * @property REVISION
      * @type string
      * @readOnly
      * @static
      */
-    VERSION: '1',
+    REVISION: '1',
 
     /**
      * Whether or not THREE.js is available
@@ -180,6 +180,7 @@ PCL.Math.hashCode = function( string ) {
         hash = hash & hash; // Convert to 32bit integer
     }
     return hash;
+
 };
 
 
@@ -207,6 +208,10 @@ PCL.Math.cerp = function( a, b, c, d, alpha ) {
 
     // a^3 * p + a^2 * q + a * r + s
     return s + alpha * ( r + alpha * ( q + alpha * p ) );
+};
+
+PCL.Math.cosInterpolate = function( a, b, alpha ) {
+    return PCL.Math.lerp( a, b, ( 1 - Math.cos( alpha * Math.PI ) ) / 2 );
 };
 
 
@@ -245,6 +250,79 @@ PCL.Math.LCG = (function() {
 
     return LCG;
 }());
+
+PCL.Math.MersenneTwister = (function() {
+    function MersenneTwister( seed ) {
+
+        // Modified version of MersenneTwister by Stephan Brumme
+        // http://create.stephan-brumme.com/mersenne-twister/mersenne.js
+
+        var state = new Array(624);
+        var next;
+
+        // if no seed is given, use current time
+        if (seed === undefined)
+            seed = Date.now();
+
+        // private function: create new state (based on old one)
+        var twist = function()
+        {
+            // first 624-397=227 words
+            for (var i = 0; i < 227; i++)
+            {
+                var bits = (state[i] & 0x80000000) | (state[i + 1] & 0x7fffffff);
+                state[i] = state[i + 397] ^ (bits >>> 1) ^ ((bits & 1) * 0x9908b0df);
+            }
+            // remaining words (except the very last one)
+            for (var i = 227 ; i < 623; i++)
+            {
+                var bits = (state[i] & 0x80000000) | (state[i + 1] & 0x7fffffff);
+                state[i] = state[i - 227] ^ (bits >>> 1) ^ ((bits & 1) * 0x9908b0df);
+            }
+
+            // last word is computed pretty much the same way, but i + 1 must wrap around to 0
+            var bits = (state[623] & 0x80000000) | (state[0] & 0x7fffffff);
+            state[623] = state[396] ^ (bits >>> 1) ^ ((bits & 1) * 0x9908b0df);
+
+            // word used for next random number
+            next = 0;
+        }
+
+        // fill initial state
+        state[0] = seed;
+        for (var i = 1; i < 624; i++)
+        {
+            var s = state[i - 1] ^ (state[i - 1] >>> 30);
+            // avoid multiplication overflow: split 32 bits into 2x 16 bits and process them individually
+            state[i]  = (((((s & 0xffff0000) >>> 16) * 1812433253) << 16) +
+            (s & 0x0000ffff)         * 1812433253)        + i;
+            // convert to 32 bit unsigned int
+            state[i] |= 0;
+        }
+
+        // twist'n'shout
+        twist();
+
+        // public function: return a random 32 bit number
+        this.random = function()
+        {
+            // compute new state ?
+            if (next >= 624)
+                twist();
+
+            // shuffle bits around
+            var x = state[next++];
+            x ^=  x >>> 11;
+            x ^= (x  <<  7) & 0x9d2c5680;
+            x ^= (x  << 15) & 0xefc60000;
+            x ^=  x >>> 18;
+
+            return x;
+        }
+    };
+
+}());
+
 
 // ----------
 // core/BaseNode.js
@@ -393,6 +471,22 @@ PCL.BaseNode.prototype = {
     },
 
     /**
+     * Returns the value of the input with index i.
+     *
+     * @method getInputValue
+     * @param i {Number} Input node index.
+     * @param args {Array<Any>} Arguments to be passed through the node 
+     *    chain (ex. x, y coordinates)
+     * @return {Number} Value of the input node
+     */
+    getInputValue: function( i, args ) {
+
+        var node = this.inputNodes[i];
+        return node.getValue.apply( node, args );
+
+    },
+
+    /**
      * Returns an array of input node values (indexed the same as the
      * actual input nodes)
      *
@@ -406,8 +500,7 @@ PCL.BaseNode.prototype = {
         var values = [];
 
         for ( var i = 0, node; i < this.inputs; i++ ) {
-            node = this.inputNodes[ i ];
-            values[i] = node.getValue.apply( node, args );
+            values[i] = this.getInputValue( i, args );
         }
 
         return values;
@@ -987,6 +1080,8 @@ PCL.CheckerNode = function() {
      */
     this.name = 'CheckerNode';
 
+    this.gridSize = 64;
+
 };
 
 PCL.CheckerNode.prototype = Object.create( PCL.GeneratorNode.prototype );
@@ -997,9 +1092,12 @@ PCL.CheckerNode.constructor = PCL.CheckerNode;
  *
  * @method getValue
  * @param value {number} The value to be returned by this 'generator'.
- * @return {number} `value`
+ * @return {number}
  */
 PCL.CheckerNode.prototype.getValue = function( x, y ) {
+
+    x = x / this.gridSize;
+    y = y / this.gridSize;
 
     return (x ^ y) & 1;
 
@@ -1141,7 +1239,7 @@ PCL.FunctionNode.prototype.getValue = function() {
      * @type any
      * @default `Date.now()`
      */
-    this.seed = PCL.Math.hashCode( seed === undefined ? Date.now() : seed ).toString(36).replace(/-/, 'A');
+    this.seed = PCL.Math.hashCode( seed === undefined ? Date.now() : seed );
 
     /**
      * The size of feature point containing grid squares. Average of 4 points per square.
@@ -1172,7 +1270,7 @@ PCL.FunctionNode.prototype.getValue = function() {
 
     /**
      * Stores the points generated in the last use of `getValue()`. By caching these points
-     * the number of times they must be calculated is drastically reduced.
+     * the number of times they must be calculated is generally drastically reduced.
      *
      * @property _lastGrid
      * @type array
@@ -1219,10 +1317,10 @@ PCL.Worley2DNode.prototype.distanceManhattan = function( ax, ay, bx, by ) {
 };
 
 /**
- * Returns the value of `Worley2DNode.value` for the given arguments.
+ * Returns a height value for the given (x, y) coordinates.
  *
  * @method getValue
- * @return {number} `value`
+ * @return {number}
  */
 PCL.Worley2DNode.prototype.getValue = function( x, y ) {
 
@@ -1239,17 +1337,9 @@ PCL.Worley2DNode.prototype.getValue = function( x, y ) {
             for ( gridY = iy - 1; gridY < iy + 2; gridY++ ) {
 
                 if ( this.wrapSize > 0 ) {
-                    coordHash = PCL.Math.hashCode( 
-                        PCL.Math.mod( gridX, this.wrapSize ).toString() + 
-                        this.seed + 
-                        PCL.Math.mod( gridY, this.wrapSize ).toString() 
-                    );
+                    coordHash = ( ( ( ( PCL.Math.mod( gridX, this.wrapSize ) * 0x1f1f1f1f ) ^ ( PCL.Math.mod( gridY, this.wrapSize ) * 0xadadadad ) ) + 1 ) * this.seed ) >>> 2;
                 } else {
-                    coordHash = PCL.Math.hashCode( 
-                        gridX.toString() + 
-                        this.seed + 
-                        gridY.toString() 
-                    );
+                    coordHash = ( ( ( ( gridX * 0x1f1f1f1f ) ^ ( gridY * 0xadadadad ) ) + 1 ) * this.seed ) >>> 2;
                 }
 
                 lcg.setSeed( coordHash );
@@ -1648,8 +1738,8 @@ Object.defineProperties(PCL.FBMNode.prototype, {
 
 PCL.FBMNode.prototype.updateProperties = function() {
 
-    var f = this.frequency,
-        l = this.lacunarity;
+    var f = this._frequency,
+        l = this._lacunarity;
 
     var maxLength = Math.max(
         f.length || 0,
@@ -1720,9 +1810,9 @@ PCL.FBMNode.prototype.getValue = function() {
             total += inputValue;
             a     *= p;
 
-            for ( var i = 0; i < args.length; i++ ) {
-                if (!argIsConst[i]) {
-                    args[i] *= l[i];
+            for ( var j = 0; j < args.length; j++ ) {
+                if (!argIsConst[j]) {
+                    args[j] *= l[j];
                 }
             }
 
@@ -1741,8 +1831,8 @@ PCL.FBMNode.prototype.getValue = function() {
             total += inputValue;
             a     *= p;
 
-            for ( var i = 0; i < args.length; i++ ) {
-                args[i] *= l;
+            for ( var j = 0; j < args.length; j++ ) {
+                args[j] *= l;
             }
 
         }
@@ -2093,7 +2183,7 @@ PCL.SelectNode = function() {
      * @type number
      * @default 0
      */
-    this.threshold = 0;
+    this.threshold = 0.5;
 
 };
 
@@ -2110,10 +2200,10 @@ PCL.SelectNode.constructor = PCL.SelectNode;
  */
 PCL.SelectNode.prototype.getValue = function() {
 
-    var inputValues = this.getInputValues( arguments );
+    var selectValue = this.getInputValue( 2, arguments );
 
-    return (inputValues[2] < this.threshold)
-        ? inputValues[0]
-        : inputValues[1];
+    return (selectValue < this.threshold)
+        ? this.getInputValue( 0, arguments )
+        : this.getInputValue( 1, arguments );
 
 };
