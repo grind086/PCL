@@ -25,7 +25,7 @@
      * @type any
      * @default `Date.now()`
      */
-    this.seed = PCL.Math.hashCode( seed === undefined ? Date.now() : seed ).toString(36).replace(/-/, 'A');
+    this.seed = PCL.Math.hashCode( seed === undefined ? Date.now() : seed );
 
     /**
      * The size of feature point containing grid squares. Average of 4 points per square.
@@ -35,6 +35,15 @@
      * @default 64
      */
     this.gridSize = 64;
+
+    /**
+     * The number of grid squares that exist before wrapping around. Set to 0 for no wrapping.
+     *
+     * @property wrapSize
+     * @type number
+     * @default 0
+     */
+    this.wrapSize = 0;
 
     /**
      * The distance function used to calculate point values.
@@ -47,7 +56,7 @@
 
     /**
      * Stores the points generated in the last use of `getValue()`. By caching these points
-     * the number of times they must be calculated is drastically reduced.
+     * the number of times they must be calculated is generally drastically reduced.
      *
      * @property _lastGrid
      * @type array
@@ -94,10 +103,10 @@ PCL.Worley2DNode.prototype.distanceManhattan = function( ax, ay, bx, by ) {
 };
 
 /**
- * Returns the value of `Worley2DNode.value` for the given arguments.
+ * Returns a height value for the given (x, y) coordinates.
  *
  * @method getValue
- * @return {number} `value`
+ * @return {number}
  */
 PCL.Worley2DNode.prototype.getValue = function( x, y ) {
 
@@ -113,7 +122,12 @@ PCL.Worley2DNode.prototype.getValue = function( x, y ) {
         for ( gridX = ix - 1; gridX < ix + 2; gridX++ ) {
             for ( gridY = iy - 1; gridY < iy + 2; gridY++ ) {
 
-                coordHash = PCL.Math.hashCode( gridX.toString() + this.seed + gridY.toString() );
+                if ( this.wrapSize > 0 ) {
+                    coordHash = ( ( ( ( PCL.Math.mod( gridX, this.wrapSize ) * 0x1f1f1f1f ) ^ ( PCL.Math.mod( gridY, this.wrapSize ) * 0xadadadad ) ) + 1 ) * this.seed ) >>> 2;
+                } else {
+                    coordHash = ( ( ( ( gridX * 0x1f1f1f1f ) ^ ( gridY * 0xadadadad ) ) + 1 ) * this.seed ) >>> 2;
+                }
+
                 lcg.setSeed( coordHash );
 
                 npoints = this.probLookup( lcg.random() );

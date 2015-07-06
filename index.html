@@ -38,6 +38,7 @@
         <script type="text/javascript" src="src/extras/generators/CheckerNode.js"></script>
         <script type="text/javascript" src="src/extras/generators/ConstantNode.js"></script>
         <script type="text/javascript" src="src/extras/generators/FunctionNode.js"></script>
+        <script type="text/javascript" src="src/extras/generators/Perlin2DNode.js"></script>
         <script type="text/javascript" src="src/extras/generators/Worley2DNode.js"></script>
 
         <script type="text/javascript" src="src/extras/modifiers/AbsNode.js"></script>
@@ -47,6 +48,9 @@
         <script type="text/javascript" src="src/extras/modifiers/InvertNode.js"></script>
         <script type="text/javascript" src="src/extras/modifiers/ScaleBiasNode.js"></script>
         <script type="text/javascript" src="src/extras/modifiers/TerraceNode.js"></script>
+
+        <script type="text/javascript" src="src/extras/selectors/BlendNode.js"></script>
+        <script type="text/javascript" src="src/extras/selectors/SelectNode.js"></script>
 
         <script type="text/javascript" src="src/utils/Utils.js"></script>
 
@@ -58,36 +62,59 @@
 
     <body>
 
-    <canvas id="testCanvas" width="500px" height="500px"></canvas>
+    <canvas id="testCanvas" width="512px" height="512px"></canvas>
 
     <script type="text/javascript">
 
-
-        // var y = 10, seed = 'poop';
-        // for (var x = 0; x < 10; x++) {
-        //     var coordHash = PCL.Math.hashCode( x.toString(36) + seed + y.toString(36) );
-        //     var lcg = new PCL.Math.LCG( coordHash );
-
-        //     console.log( lcg.random() );
-        // }
-
-        var start = Date.now();
-
-        var worleyNode = new PCL.Worley2DNode( 11592 );
+        var worleyNode = new PCL.Worley2DNode();
         worleyNode.gridSize = 64;
-        // worleyNode.distance = worleyNode.distanceManhattan;
+        worleyNode.wrapSize = 0;
+
+        var perlinNode = new PCL.Perlin2DNode();
+        perlinNode.gridSize = 64;
+
+        var checkerNode = new PCL.CheckerNode();
+        checkerNode.gridSize = 128;
+
+        var selectNode = new PCL.SelectNode();
+        selectNode.setInput( 0, worleyNode );
+        selectNode.setInput( 1, perlinNode );
+        selectNode.setInput( 2, checkerNode );
+
+        var fbmNode = new PCL.FBMNode();
+        fbmNode.octaves = 4;
+        fbmNode.setInput( 0, worleyNode );
 
         var scaleNode = new PCL.ScaleBiasNode();
         scaleNode.scale = 255;
 
-        scaleNode.setInput( 0, worleyNode );
+        scaleNode.setInput( 0, fbmNode );
 
-        var imageData = PCL.generateImageData( scaleNode, PCL.GrayscaleFormat, 500, 500, 0, 0, 1, 1 );
+        var imageSize = 512;
+        if (worleyNode.wrapSize != 0) {
+            imageSize = Math.min( imageSize, worleyNode.wrapSize * worleyNode.gridSize );
+        }
+
+        console.log( 'start ' + worleyNode.seed );
+        var start = Date.now();
+
+        var imageData = PCL.generateImageData( scaleNode, PCL.GrayscaleFormat, imageSize, imageSize );
+
+        console.log( 'stop ' + ( Date.now() - start ) );
 
         var ctx = document.getElementById('testCanvas').getContext('2d');
-        ctx.putImageData( imageData, 0, 0 );
 
-        console.log( Date.now() - start );
+        if (worleyNode.wrapSize == 0) {
+            ctx.putImageData( imageData, 0, 0 );
+        } else {
+            var nImages = Math.ceil( 500 / imageSize );
+
+            for (var x = 0; x < nImages; x++) {
+                for (var y = 0; y < nImages; y++) {
+                    ctx.putImageData( imageData, x * imageSize, y * imageSize );
+                }
+            }
+        }
 
     </script>
         

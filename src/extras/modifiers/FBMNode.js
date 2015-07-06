@@ -53,9 +53,9 @@ PCL.FBMNode = function() {
      *
      * @property frequency
      * @type number or Array<number>
-     * @default .001;
+     * @default 1;
      */
-    this.frequency = .001;
+    this.frequency = 1;
 
     /**
      * The lacunarity (per-octave frequency multiplier) for the fbm. If set to
@@ -110,8 +110,8 @@ Object.defineProperties(PCL.FBMNode.prototype, {
 
 PCL.FBMNode.prototype.updateProperties = function() {
 
-    var f = this.frequency,
-        l = this.lacunarity;
+    var f = this._frequency,
+        l = this._lacunarity;
 
     var maxLength = Math.max(
         f.length || 0,
@@ -182,9 +182,9 @@ PCL.FBMNode.prototype.getValue = function() {
             total += inputValue;
             a     *= p;
 
-            for ( var i = 0; i < args.length; i++ ) {
-                if (!argIsConst[i]) {
-                    args[i] *= l[i];
+            for ( var j = 0; j < args.length; j++ ) {
+                if (!argIsConst[j]) {
+                    args[j] *= l[j];
                 }
             }
 
@@ -203,8 +203,8 @@ PCL.FBMNode.prototype.getValue = function() {
             total += inputValue;
             a     *= p;
 
-            for ( var i = 0; i < args.length; i++ ) {
-                args[i] *= l;
+            for ( var j = 0; j < args.length; j++ ) {
+                args[j] *= l;
             }
 
         }

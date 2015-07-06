@@ -4,6 +4,10 @@ PCL.Math.clamp = function( x, min, max ) {
     return Math.min( max, Math.max( min, x ) );
 };
 
+PCL.Math.mod = function( n, m ) {
+    return ( ( ( n % m ) + m ) % m );
+};
+
 PCL.Math.uuid = function() {
 
     // From http://www.broofa.com/Tools/Math.uuid.js
@@ -57,4 +61,5 @@ PCL.Math.hashCode = function( string ) {
         hash = hash & hash; // Convert to 32bit integer
     }
     return hash;
+
 };

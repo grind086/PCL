@@ -7,6 +7,7 @@ var fileList = [
 
     './src/math/Math.js',
     './src/math/easing.js',
+    './src/math/rng.js',
 
     './src/core/BaseNode.js',
     './src/core/CombinerNode.js',
@@ -26,6 +27,7 @@ var fileList = [
     './src/extras/generators/CheckerNode.js',
     './src/extras/generators/ConstantNode.js',
     './src/extras/generators/FunctionNode.js',
+    './src/extras/generators/Worley2DNode.js',
 
     './src/extras/modifiers/AbsNode.js',
     './src/extras/modifiers/ClampNode.js',

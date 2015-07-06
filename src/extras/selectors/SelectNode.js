@@ -26,7 +26,7 @@ PCL.SelectNode = function() {
      * @type number
      * @default 0
      */
-    this.threshold = 0;
+    this.threshold = 0.5;
 
 };
 
@@ -43,10 +43,10 @@ PCL.SelectNode.constructor = PCL.SelectNode;
  */
 PCL.SelectNode.prototype.getValue = function() {
 
-    var inputValues = this.getInputValues( arguments );
+    var selectValue = this.getInputValue( 2, arguments );
 
-    return (inputValues[2] < this.threshold)
-        ? inputValues[0]
-        : inputValues[1];
+    return (selectValue < this.threshold)
+        ? this.getInputValue( 0, arguments )
+        : this.getInputValue( 1, arguments );
 
 };

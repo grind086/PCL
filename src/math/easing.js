@@ -19,3 +19,7 @@ PCL.Math.cerp = function( a, b, c, d, alpha ) {
     // a^3 * p + a^2 * q + a * r + s
     return s + alpha * ( r + alpha * ( q + alpha * p ) );
 };
+
+PCL.Math.cosInterpolate = function( a, b, alpha ) {
+    return PCL.Math.lerp( a, b, ( 1 - Math.cos( alpha * Math.PI ) ) / 2 );
+};

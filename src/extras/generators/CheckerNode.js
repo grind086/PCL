@@ -18,6 +18,8 @@ PCL.CheckerNode = function() {
      */
     this.name = 'CheckerNode';
 
+    this.gridSize = 64;
+
 };
 
 PCL.CheckerNode.prototype = Object.create( PCL.GeneratorNode.prototype );
@@ -28,9 +30,12 @@ PCL.CheckerNode.constructor = PCL.CheckerNode;
  *
  * @method getValue
  * @param value {number} The value to be returned by this 'generator'.
- * @return {number} `value`
+ * @return {number}
  */
 PCL.CheckerNode.prototype.getValue = function( x, y ) {
+
+    x = x / this.gridSize;
+    y = y / this.gridSize;
 
     return (x ^ y) & 1;
 

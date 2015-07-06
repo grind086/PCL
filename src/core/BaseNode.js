@@ -141,6 +141,22 @@ PCL.BaseNode.prototype = {
     },
 
     /**
+     * Returns the value of the input with index i.
+     *
+     * @method getInputValue
+     * @param i {Number} Input node index.
+     * @param args {Array<Any>} Arguments to be passed through the node 
+     *    chain (ex. x, y coordinates)
+     * @return {Number} Value of the input node
+     */
+    getInputValue: function( i, args ) {
+
+        var node = this.inputNodes[i];
+        return node.getValue.apply( node, args );
+
+    },
+
+    /**
      * Returns an array of input node values (indexed the same as the
      * actual input nodes)
      *
@@ -154,8 +170,7 @@ PCL.BaseNode.prototype = {
         var values = [];
 
         for ( var i = 0, node; i < this.inputs; i++ ) {
-            node = this.inputNodes[ i ];
-            values[i] = node.getValue.apply( node, args );
+            values[i] = this.getInputValue( i, args );
         }
 
         return values;

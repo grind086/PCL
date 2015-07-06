@@ -67,7 +67,17 @@ var PCL = {
      * @readOnly
      * @static
      */
-    VERSION: '1' 
+    VERSION: '1',
+
+    /**
+     * Whether or not THREE.js is available
+     *
+     * @property THREE_AVAILABLE
+     * @type boolean
+     * @readOnly
+     * @static
+     */
+    THREE_AVAILABLE: (typeof THREE !== 'undefined')
 
 };
 
@@ -98,12 +108,24 @@ PCL.warn = function() { console.warn.apply( console, arguments ); };
 
 PCL.error = function() { console.error.apply( console, arguments ); };
 
+PCL.RBGFormat = 0;
+PCL.RGBAFormat = 1;
+PCL.GrayscaleFormat = 2;
+
 
 // ----------
 // math/Math.js
 // ----------
 
 PCL.Math = {};
+
+PCL.Math.clamp = function( x, min, max ) {
+    return Math.min( max, Math.max( min, x ) );
+};
+
+PCL.Math.mod = function( n, m ) {
+    return ( ( ( n % m ) + m ) % m );
+};
 
 PCL.Math.uuid = function() {
 
@@ -142,6 +164,37 @@ PCL.Math.uuid = function() {
 
 }();
 
+PCL.Math.hashCode = function( string ) {
+
+    // Implementation of Java's String.hashCode()
+    // From http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+
+    if ( typeof string !== "string" ) {
+        string = string.toString();
+    }
+
+    var hash = 0;
+    if (string.length == 0) return hash;
+    for (var i = 0; i < string.length; i++) {
+        hash = ((hash<<5)-hash)+string.charCodeAt(i);
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+};
+
+
+// ----------
+// math/easing.js
+// ----------
+
+PCL.Math.getEasingFunction = function( type ) {
+
+    switch (type) {
+        
+    }
+
+};
+
 PCL.Math.lerp = function( a, b, alpha ) {
     return a * (1 - alpha) + b * alpha;
 };
@@ -156,18 +209,42 @@ PCL.Math.cerp = function( a, b, c, d, alpha ) {
     return s + alpha * ( r + alpha * ( q + alpha * p ) );
 };
 
-PCL.Math.clamp = function( x, min, max ) {
-    return Math.min( max, Math.max( min, x ) );
-};
 
-PCL.Math.getEasingFunction = function( type ) {
+// ----------
+// math/rng.js
+// ----------
 
-    switch (type) {
+PCL.Math.LCG = (function() {
+    var a = 1664525, 
+        c = 1013904223,
+        m = Math.pow(2, 32);
         
-    }
+    function LCG( seed ) {
+        if ( seed === undefined )
+            seed = Date.now();
+        this.setSeed( seed );
+    };
 
-};
+    LCG.prototype = {
+        setSeed: function( seed ) {
+            this.seed = ( typeof seed === 'number' 
+                ? seed 
+                : PCL.Math.hashCode( seed )
+            );
+            this.xi = this.seed;
+        },
 
+        next: function() {
+            return this.xi = (a * this.xi + c) % m;
+        },
+
+        random: function() {
+            return Math.abs( this.next() / m );
+        }
+    };
+
+    return LCG;
+}());
 
 // ----------
 // core/BaseNode.js
@@ -463,6 +540,13 @@ PCL.ModifierNode = function() {
 
 PCL.ModifierNode.prototype = Object.create( PCL.BaseNode.prototype );
 PCL.ModifierNode.constructor = PCL.ModifierNode;
+
+PCL.ModifierNode.prototype.getInputValue = function( args ) {
+
+    var node = this.inputNodes[0];
+    return node.getValue.apply( node, args );
+
+};
 
 
 // ----------
@@ -880,6 +964,49 @@ PCL.ArgumentNode.prototype.getValue = function( value ) {
 
 
 // ----------
+// extras/generators/CheckerNode.js
+// ----------
+
+/**
+ * Creates a simple checkered pattern in 2d.
+ *
+ * @class PCL.CheckerNode
+ * @constructor
+ * @extends PCL.GeneratorNode
+ */
+PCL.CheckerNode = function() {
+
+    PCL.GeneratorNode.call( this );
+
+    /**
+     * The specific variety of node (ex. AddNode, PerlinNode, AbsNode, etc.)
+     *
+     * @property name
+     * @type string
+     * @default CheckerNode
+     */
+    this.name = 'CheckerNode';
+
+};
+
+PCL.CheckerNode.prototype = Object.create( PCL.GeneratorNode.prototype );
+PCL.CheckerNode.constructor = PCL.CheckerNode;
+
+/**
+ * Returns 1 for black and 0 for white squares.
+ *
+ * @method getValue
+ * @param value {number} The value to be returned by this 'generator'.
+ * @return {number} `value`
+ */
+PCL.CheckerNode.prototype.getValue = function( x, y ) {
+
+    return (x ^ y) & 1;
+
+};
+
+
+// ----------
 // extras/generators/ConstantNode.js
 // ----------
 
@@ -931,6 +1058,233 @@ PCL.ConstantNode.prototype.getValue = function() {
 
 
 // ----------
+// extras/generators/FunctionNode.js
+// ----------
+
+/**
+ * Returns the value returned by `FunctionNode.value` property.
+ *
+ * @class PCL.FunctionNode
+ * @constructor
+ * @extends PCL.GeneratorNode
+ */
+ PCL.FunctionNode = function() {
+
+    PCL.GeneratorNode.call( this );
+
+    /**
+     * The specific variety of node (ex. AddNode, PerlinNode, AbsNode, etc.)
+     *
+     * @property name
+     * @type string
+     * @default FunctionNode
+     */
+    this.name = 'FunctionNode';
+
+    /**
+     * The value to be returned by this node.
+     *
+     * @property value
+     * @type function
+     * @default 0
+     */
+    this.value = function() {
+        return 0;
+    };
+
+};
+
+PCL.FunctionNode.prototype = Object.create( PCL.GeneratorNode.prototype );
+PCL.FunctionNode.constructor = PCL.FunctionNode;
+
+/**
+ * Returns the value of `FunctionNode.value` for the given arguments.
+ *
+ * @method getValue
+ * @return {number} `value`
+ */
+PCL.FunctionNode.prototype.getValue = function() {
+
+    return this.value.apply( this, arguments );
+
+};
+
+
+// ----------
+// extras/generators/Worley2DNode.js
+// ----------
+
+/**
+ * Returns the value returned by `Worley2DNode.value` property.
+ *
+ * @class PCL.Worley2DNode
+ * @constructor
+ * @extends PCL.GeneratorNode
+ */
+ PCL.Worley2DNode = function( seed ) {
+
+    PCL.GeneratorNode.call( this );
+
+    /**
+     * The specific variety of node (ex. AddNode, PerlinNode, AbsNode, etc.)
+     *
+     * @property name
+     * @type string
+     * @default Worley2DNode
+     */
+    this.name = 'Worley2DNode';
+
+    /**
+     * The random seed used by the node.
+     *
+     * @property seed
+     * @type any
+     * @default `Date.now()`
+     */
+    this.seed = PCL.Math.hashCode( seed === undefined ? Date.now() : seed ).toString(36).replace(/-/, 'A');
+
+    /**
+     * The size of feature point containing grid squares. Average of 4 points per square.
+     *
+     * @property gridSize
+     * @type number
+     * @default 64
+     */
+    this.gridSize = 64;
+
+    /**
+     * The number of grid squares that exist before wrapping around. Set to 0 for no wrapping.
+     *
+     * @property wrapSize
+     * @type number
+     * @default 0
+     */
+    this.wrapSize = 0;
+
+    /**
+     * The distance function used to calculate point values.
+     *
+     * @property distance
+     * @type Function
+     * @default PCL.Worley2DNode.prototype.distanceEuclidean
+     */
+    this.distance = this.distanceEuclidean;
+
+    /**
+     * Stores the points generated in the last use of `getValue()`. By caching these points
+     * the number of times they must be calculated is drastically reduced.
+     *
+     * @property _lastGrid
+     * @type array
+     * @private
+     */
+    this._lastGrid = [null, null, null];
+
+};
+
+PCL.Worley2DNode.prototype = Object.create( PCL.GeneratorNode.prototype );
+PCL.Worley2DNode.constructor = PCL.Worley2DNode;
+
+/**
+ * Given a random number 0-1 returns the number of feature points based on
+ * a poisson distribution (k = 1..9, lambda = 4).
+ *
+ * @method probLookup
+ * @return {number}
+ */
+PCL.Worley2DNode.prototype.probLookup = function(prob) {
+    if (prob < 0.07525283359435139) return 1;
+    if (prob < 0.22575850078305418) return 2;
+    if (prob < 0.42643272370132457) return 3;
+    if (prob < 0.62710694661959500) return 4;
+    if (prob < 0.78764632495421130) return 5;
+    if (prob < 0.89467257717728880) return 6;
+    if (prob < 0.95583043559047590) return 7;
+    if (prob < 0.98640936479706940) return 8;
+    return 9;
+};
+
+PCL.Worley2DNode.prototype.distanceEuclidean = function( ax, ay, bx, by ) {
+    var dx = bx - ax,
+        dy = by - ay;
+
+    return Math.sqrt( dx * dx + dy * dy );
+};
+
+PCL.Worley2DNode.prototype.distanceManhattan = function( ax, ay, bx, by ) {
+    var dx = bx - ax,
+        dy = by - ay;
+
+    return Math.abs( dx ) + Math.abs( dy );
+};
+
+/**
+ * Returns the value of `Worley2DNode.value` for the given arguments.
+ *
+ * @method getValue
+ * @return {number} `value`
+ */
+PCL.Worley2DNode.prototype.getValue = function( x, y ) {
+
+    var ix = Math.floor( x / this.gridSize ),
+        iy = Math.floor( y / this.gridSize ),
+        points = [];
+
+    if ( this._lastGrid[0] !== ix || this._lastGrid[1] !== iy ) {
+
+        var lcg = new PCL.Math.LCG();
+
+        var gridX, gridY, i, coordHash, npoints, pX, pY, d;
+        for ( gridX = ix - 1; gridX < ix + 2; gridX++ ) {
+            for ( gridY = iy - 1; gridY < iy + 2; gridY++ ) {
+
+                if ( this.wrapSize > 0 ) {
+                    coordHash = PCL.Math.hashCode( 
+                        PCL.Math.mod( gridX, this.wrapSize ).toString() + 
+                        this.seed + 
+                        PCL.Math.mod( gridY, this.wrapSize ).toString() 
+                    );
+                } else {
+                    coordHash = PCL.Math.hashCode( 
+                        gridX.toString() + 
+                        this.seed + 
+                        gridY.toString() 
+                    );
+                }
+
+                lcg.setSeed( coordHash );
+
+                npoints = this.probLookup( lcg.random() );
+                for ( i = 0; i < npoints; i++ ) {
+                    pX = (gridX + lcg.random()) * this.gridSize;
+                    pY = (gridY + lcg.random()) * this.gridSize;
+
+                    points.push( [pX, pY] );
+                }
+
+            }
+        }
+
+        this._lastGrid = [ix, iy, points];
+
+    } else {
+
+        points = this._lastGrid[2];
+
+    }
+
+    var min = Infinity;
+    for ( var i = 0, d; i < points.length; i++ ) {
+        d   = this.distance( x, y, points[i][0], points[i][1] );
+        min = Math.min( min, d );
+    }
+
+    return PCL.Math.clamp( min / this.gridSize, 0, 1 );
+
+};
+
+
+// ----------
 // extras/modifiers/AbsNode.js
 // ----------
 
@@ -969,8 +1323,7 @@ PCL.AbsNode.constructor = PCL.AbsNode;
  */
 PCL.AbsNode.prototype.getValue = function() {
 
-    var inputValues = this.getInputValues( arguments );
-    return Math.abs( inputValues[0] );
+    return Math.abs( this.getInputValue( arguments ) );
 
 };
 
@@ -1032,8 +1385,7 @@ PCL.ClampNode.constructor = PCL.ClampNode;
  */
 PCL.ClampNode.prototype.getValue = function() {
 
-    var inputValue = this.getInputValues( arguments )[0];
-   return PCL.Math.clamp( inputValue, this.min, this.max );
+   return PCL.Math.clamp( this.getInputValue( arguments ), this.min, this.max );
 
 };
 
@@ -1150,7 +1502,7 @@ PCL.CurveNode.prototype.makeControlPoints = function( pointArray ) {
  */
 PCL.CurveNode.prototype.getValue = function() {
 
-    var inputValue = this.getInputValues( arguments )[0];
+    var inputValue = this.getInputValue( arguments );
     var maxIndex = this.controlPoints.length - 1;
     var index;
 
@@ -1176,6 +1528,228 @@ PCL.CurveNode.prototype.getValue = function() {
     var alpha = ( inputValue - c1[0] ) / ( c2[0] - c1[0] );
 
     return PCL.Math.cerp( c0[1], c1[1], c2[1], c3[1], alpha );
+
+};
+
+
+// ----------
+// extras/modifiers/FBMNode.js
+// ----------
+
+/**
+ * Applies fractional brownian motion. The properties `frequency` and `lacunarity`, 
+ * may be set to either a number or array of numbers. If set to a number, all 
+ * arguments will use the same value for that parameter. If set to an array, the
+ * corresponding argument will use the proper value for that property. If an array 
+ * element on any property is set to `null` or `undefined` the corresponding
+ * argument will not be modified.
+ *
+ *     fbmNode.lacunarity = 2;
+ *     fbmNode.getValue( x, y, z ); 
+ *     // All arguments will have a lacunarity of 2
+ *
+ *     fbmNode.lacunarity = [ 2, 1.5, 2.5 ];
+ *     fbmNode.getValue( x, y, z );
+ *     // x lacunarity is 2
+ *     // y lacunarity is 1.5
+ *     // z lacunarity is 2.5
+ *
+ *     fbmNode.frequency = [ null, 1 / 1024 ];
+ *     fbmNode.lacunarity = 2;
+ *     fbmNode.getValue( x, y, z );
+ *     // x is held constant
+ *     // y lacunarity is 2, and frequency is 1 / 1024
+ *     // z is held constant
+ *
+ * @class PCL.FBMNode
+ * @constructor
+ * @extends PCL.ModifierNode
+ */
+PCL.FBMNode = function() {
+
+    PCL.ModifierNode.call( this );
+
+    /**
+     * The specific variety of node (ex. AddNode, PerlinNode, AbsNode, etc.)
+     *
+     * @property name
+     * @type string
+     * @default FBMNode
+     */
+    this.name = 'FBMNode';
+
+    this.octaves = 8;
+
+    this._frequency  = 2;
+    this._lacunarity = 2;
+    this._useArrays  = false;
+
+    /**
+     * The base frequency for the fbm. If set to an array separate values will 
+     * be used for each argument. If an array element is `null` that argument 
+     * will be held constant.
+     *
+     * @property frequency
+     * @type number or Array<number>
+     * @default 1;
+     */
+    this.frequency = 1;
+
+    /**
+     * The lacunarity (per-octave frequency multiplier) for the fbm. If set to
+     * an array separate values will be used for each argument. If an array
+     * element is `null` that argument will be held constant.
+     *
+     * @property lacunarity
+     * @type number or Array<number>
+     * @default 2
+     */
+    this.lacunarity = 2;
+
+    /**
+     * The base amplitude for the fbm.
+     *
+     * @property amplitude
+     * @type number
+     * @default 0.5
+     */
+    this.amplitude = 0.5;
+
+    /**
+     * The persistence (per-octave amplitude multiplier) for the fbm.
+     *
+     * @property persistence
+     * @type number
+     * @default 0.5
+     */
+    this.persistence = 0.5;
+
+};
+
+PCL.FBMNode.prototype = Object.create( PCL.ModifierNode.prototype );
+PCL.FBMNode.constructor = PCL.FBMNode;
+
+Object.defineProperties(PCL.FBMNode.prototype, {
+    frequency: {
+        get: function() { return this._frequency; },
+        set: function( f ) {
+            this._frequency = f;
+            this.updateProperties();
+        }
+    },
+    lacunarity: {
+        get: function() { return this._lacunarity; },
+        set: function( l ) {
+            this._lacunarity = l;
+            this.updateProperties();
+        }
+    }
+});
+
+PCL.FBMNode.prototype.updateProperties = function() {
+
+    var f = this.frequency,
+        l = this.lacunarity;
+
+    var maxLength = Math.max(
+        f.length || 0,
+        l.length || 0
+    );
+
+    if (maxLength === 0) {
+
+        this._frequency   = f;
+        this._lacunarity  = l;
+
+        this._useArrays = false;
+
+    } else {
+
+        var fArr = new Array(maxLength),
+            lArr = new Array(maxLength);
+
+        for (var i = 0; i < maxLength; i++) {
+            fArr[i] = (f instanceof Array) ? f[i] : f;
+            lArr[i] = (l instanceof Array) ? l[i] : l;
+        }
+
+        this._frequency   = fArr;
+        this._lacunarity  = lArr;
+
+        this._useArrays = true;
+
+    }
+
+};
+
+/**
+ * Does things! (todo: document this)
+ *
+ * @method getValue
+ * @param [...arguments] {Any} Arguments to be passed up the node chain.
+ *    Typically numbers.
+ * @return {number}
+ */
+PCL.FBMNode.prototype.getValue = function() {
+
+    var total = 0, args = [], inputValue;
+
+    var f = this._frequency,
+        l = this._lacunarity,
+        a = this.amplitude,
+        p = this.persistence;
+
+    if ( this._useArrays ) {
+
+        var argIsConst = [];
+
+        for ( var i = 0; i < arguments.length; i++ ) {
+            if ( f[i] !== undefined && l[i] !== undefined ) {
+                args[i] = arguments[i] * f[i];
+                argIsConst[i] = false;
+            } else {
+                args[i] = arguments[i];
+                argIsConst[i] = true;
+            }
+        }
+
+        for ( var i = 0; i < this.octaves; i++ ) {
+
+            inputValue = this.getInputValue( args ) * a;
+
+            total += inputValue;
+            a     *= p;
+
+            for ( var i = 0; i < args.length; i++ ) {
+                if (!argIsConst[i]) {
+                    args[i] *= l[i];
+                }
+            }
+
+        }
+
+    } else {
+
+        for ( var i = 0; i < arguments.length; i++ ) {
+            args[i] = arguments[i] * f;
+        }
+
+        for ( var i = 0; i < this.octaves; i++ ) {
+
+            inputValue = this.getInputValue( args ) * a;
+
+            total += inputValue;
+            a     *= p;
+
+            for ( var i = 0; i < args.length; i++ ) {
+                args[i] *= l;
+            }
+
+        }
+
+    }
+
+    return total;
 
 };
 
@@ -1219,8 +1793,7 @@ PCL.InvertNode.constructor = PCL.InvertNode;
  */
 PCL.InvertNode.prototype.getValue = function() {
 
-	var inputValues = this.getInputValues( arguments );
-	return -1 * inputValues[0];
+	return -1 * this.getInputValue( arguments );
 
 };
 
@@ -1282,8 +1855,7 @@ PCL.ScaleBiasNode.constructor = PCL.ScaleBiasNode;
  */
 PCL.ScaleBiasNode.prototype.getValue = function() {
 
-	var inputValues = this.getInputValues( arguments );
-	return inputValues[0] * this.scale + this.bias;
+	return this.getInputValue( arguments ) * this.scale + this.bias;
 
 };
 
@@ -1408,7 +1980,7 @@ PCL.TerraceNode.prototype.makeControlPoints = function( pointCount ) {
  */
 PCL.TerraceNode.prototype.getValue = function() {
 
-	var inputValue = this.getInputValues( arguments )[ 0 ];
+	var inputValue = this.getInputValue( arguments );
 	var index;
 
 	for ( index = 0; index < this.controlPoints.length; index++ ) {
