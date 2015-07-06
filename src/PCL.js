@@ -56,14 +56,14 @@
 var PCL = { 
 
     /**
-     * The current PCL revision
+     * The current PCL version
      *
-     * @property REVISION
+     * @property VERSION
      * @type string
      * @readOnly
      * @static
      */
-    REVISION: '1',
+    VERSION: '0.1.0',
 
     /**
      * Whether or not THREE.js is available
